@@ -2,4 +2,4 @@
 
 echo "Starting searchd"
 
-exec searchd --console --config /etc/sphinx/sphinx.conf
+exec searchd --console --pidfile --config /etc/sphinx/sphinx.conf
