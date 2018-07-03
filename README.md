@@ -1,6 +1,6 @@
 # Sphinx Search
 
-![Sphinx Version](https://img.shields.io/badge/version-2.3.2-green.svg?style=for-the-badge)
+![Sphinx](https://img.shields.io/badge/sphinx-2.3.2-green.svg?style=for-the-badge)
 ![Stars](https://img.shields.io/docker/stars/jc21/sphinxsearch.svg?style=for-the-badge)
 ![Pulls](https://img.shields.io/docker/pulls/jc21/sphinxsearch.svg?style=for-the-badge)
 
