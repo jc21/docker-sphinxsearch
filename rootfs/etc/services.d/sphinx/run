@@ -1,0 +1,5 @@
+#!/usr/bin/with-contenv bash
+
+echo "Starting searchd"
+
+exec searchd --console --config /etc/sphinx/sphinx.conf
