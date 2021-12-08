@@ -26,7 +26,7 @@ services:
       - 9312:9312
     volumes:
       - "./sphinx.conf:/etc/sphinx/sphinx.conf"
-      - "./data:/var/data/sphinx"
+      - "./data:/var/lib/sphinx"
 ```
 
 
@@ -43,7 +43,7 @@ With docker vanilla:
 ```bash
 docker run --rm -it \
     -v /path/to/sphinx.conf:/etc/sphinx/sphinx.conf \
-    -v /path/to/data:/var/data/sphinx \
+    -v /path/to/data:/var/lib/sphinx \
     jc21/sphinxsearch \
     indexer --all
 ```
@@ -65,7 +65,7 @@ docker run --detach \
     -p 9306:9306 \
     -p 9312:9312 \
     -v /path/to/sphinx.conf:/etc/sphinx/sphinx.conf \
-    -v /path/to/data:/var/data/sphinx \
+    -v /path/to/data:/var/lib/sphinx \
     jc21/sphinxsearch
 ```
 
