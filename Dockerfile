@@ -32,7 +32,7 @@ EXPOSE 9306
 EXPOSE 9312
 
 # Data
-VOLUME /var/data/sphinx
+VOLUME /var/lib/sphinx
 
 # Other
 ADD env/.bashrc /root/
