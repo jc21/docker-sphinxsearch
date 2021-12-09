@@ -42,7 +42,7 @@ pipeline {
 				sh """docker build \\
 				--pull \\
 				--no-cache \\
-				-f docker/Dockerfile \\
+				-f Dockerfile \\
 				-t jc21/${IMAGE}:${BUILD_TAG} \\
 				.
 				"""
