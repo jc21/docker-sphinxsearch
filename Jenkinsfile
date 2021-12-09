@@ -1,69 +1,92 @@
 pipeline {
-  options {
-    buildDiscarder(logRotator(numToKeepStr: '10'))
-    disableConcurrentBuilds()
-  }
-  agent any
-  environment {
-    IMAGE          = "sphinxsearch"
-    TEMP_IMAGE     = "${IMAGE}-build_${BUILD_NUMBER}"
-    PUBLIC_LATEST  = "docker.io/jc21/${IMAGE}:latest"
-    PRIVATE_LATEST = "docker.jc21.net.au/jcurnow/${IMAGE}:latest"
-    // Architectures:
-    AMD64_TAG        = "amd64"
-    ARMV6_TAG        = "armv6l"
-    ARMV7_TAG        = "armv7l"
-    ARM64_TAG        = "arm64"
-  }
-  stages {
-    stage('Build Master') {
-      when {
-        branch 'master'
-      }
-      // ========================
-      // amd64
-      // ========================
-      parallel {
-        stage('amd64') {
-          agent {
-            label 'amd64'
-          }
-          steps {
-            ansiColor('xterm') {
-              // Docker Build
-              sh 'docker build --pull --no-cache --squash --compress -t ${TEMP_IMAGE}-${AMD64_TAG} .'
+	options {
+		buildDiscarder(logRotator(numToKeepStr: '5'))
+		disableConcurrentBuilds()
+		ansiColor('xterm')
+	}
+	agent any
+	environment {
+		IMAGE        = 'sphinxsearch'
+		BRANCH_LOWER = "${BRANCH_NAME.toLowerCase().replaceAll('/', '-')}"
+	}
+	stages {
+		stage('Environment') {
+			parallel {
+				stage('Master') {
+					when {
+						branch 'master'
+					}
+					steps {
+						script {
+							env.BUILD_TAG = 'latest'
+						}
+					}
+				}
+				stage('Other') {
+					when {
+						not {
+							branch 'master'
+						}
+					}
+					steps {
+						script {
+							// Defaults to the Branch name, which is applies to all branches AND pr's
+							env.BUILD_TAG = "github-${BRANCH_LOWER}"
+						}
+					}
+				}
+			}
+		}
+		stage('Build') {
+			steps {
+				sh """docker build \\
+				--pull \\
+				--no-cache \\
+				-f docker/Dockerfile \\
+				-t jc21/${IMAGE}:${BUILD_TAG} \\
+				.
+				"""
+			}
+		}
+		stage('Push') {
+			steps {
+				withCredentials([usernamePassword(credentialsId: 'jc21-dockerhub', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+					sh 'docker login -u "${DOCKER_USER}" -p "${DOCKER_PASS}"'
+					sh "docker push jc21/${IMAGE}:${BUILD_TAG}"
+				}
+			}
+		}
+		stage('PR Comment') {
+			when {
+				allOf {
+					changeRequest()
+					not {
+						equals expected: 'UNSTABLE', actual: currentBuild.result
+					}
+				}
+			}
+			steps {
+				script {
+					def comment = pullRequest.comment("""Docker Image for build ${BUILD_NUMBER} is available on [DockerHub](https://cloud.docker.com/repository/docker/jc21/${IMAGE}) as:
 
-              // Dockerhub
-              sh 'docker tag ${TEMP_IMAGE}-${AMD64_TAG} ${PUBLIC_LATEST}'
-              withCredentials([usernamePassword(credentialsId: 'jc21-dockerhub', passwordVariable: 'dpass', usernameVariable: 'duser')]) {
-                sh "docker login -u '${duser}' -p '${dpass}'"
-                sh 'docker push ${PUBLIC_LATEST}'
-              }
-
-              // Private
-              sh 'docker tag ${TEMP_IMAGE}-${AMD64_TAG} ${PRIVATE_LATEST}'
-              withCredentials([usernamePassword(credentialsId: 'jc21-private-registry', passwordVariable: 'dpass', usernameVariable: 'duser')]) {
-                sh "docker login -u '${duser}' -p '${dpass}' docker.jc21.net.au"
-                sh 'docker push ${PRIVATE_LATEST}'
-              }
-
-              sh 'docker rmi ${PUBLIC_LATEST}'
-              sh 'docker rmi ${PRIVATE_LATEST}'
-              sh 'docker rmi ${TEMP_IMAGE}-${AMD64_TAG}'
-            }
-          }
-        }
-      }
-    }
-  }
-  post {
-    success {
-      juxtapose event: 'success'
-      sh 'figlet "SUCCESS"'
-    }
-    failure {
-      juxtapose event: 'failure'
-      sh 'figlet "FAILURE"'
-    }
-  }
+- `jc21/${IMAGE}:github-${BUILD_TAG}`
+""")
+				}
+			}
+		}
+	}
+	post {
+		success {
+			juxtapose event: 'success'
+			sh 'figlet "SUCCESS"'
+		}
+		failure {
+			juxtapose event: 'failure'
+			sh 'figlet "FAILURE"'
+		}
+		unstable {
+			juxtapose event: 'unstable'
+			sh 'figlet "UNSTABLE"'
+		}
+	}
 }
